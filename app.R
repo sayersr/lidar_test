@@ -31,6 +31,7 @@ ui <- fluidPage(
       checkboxInput("color_by_height", "Color by Height", value = TRUE),
       numericInput("max_points", "Max Points to Display", value = 100000, min = 1000, max = 1000000),
       numericInput("dem_resolution", "DEM Resolution (m)", value = 10, min = 1, max = 50),
+      sliderInput("height_exaggeration", "Height Exaggeration", min = 0.1, max = 5, value = 1, step = 0.1),
       downloadButton("download_dem", "Download DEM (GeoTIFF)")
     ),
     mainPanel(
@@ -116,8 +117,11 @@ server <- function(input, output, session) {
     
     color_var <- if(input$color_by_height) "Z" else "Intensity"
     
+    # Apply height exaggeration
+    data$Z_exaggerated <- data$Z * input$height_exaggeration
+    
     plot_ly(data = data, 
-            x = ~X, y = ~Y, z = ~Z, 
+            x = ~X, y = ~Y, z = ~Z_exaggerated, 
             type = "scatter3d", 
             mode = "markers",
             marker = list(
@@ -136,7 +140,12 @@ server <- function(input, output, session) {
   
   output$dem_plot <- renderPlot({
     req(dem())
-    plot(dem(), col = viridis(100), main = "Digital Elevation Model")
+    dem_data <- dem()
+    
+    # Apply height exaggeration
+    dem_exaggerated <- dem_data * input$height_exaggeration
+    
+    plot(dem_exaggerated, col = viridis(100), main = "Digital Elevation Model")
   })
   
   output$download_dem <- downloadHandler(
